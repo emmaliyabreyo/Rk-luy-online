@@ -1,16 +1,29 @@
-
-
+import os
+import logging
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
 from telegram.ext import Application, CommandHandler, ContextTypes
 
-# 🛠️ កន្លែងត្រូវផ្លាស់ប្តូរទិន្នន័យរបស់អ្នក
-BOT_TOKEN = "8003134460:AAFr-D_fGIyj0Sev2G3lFsJ2kmtUkQ9FMLo" # ដាក់ Token របស់បតអ្នក
-WEBAPP_URL = "rk-luy-online-tjjl.vercel.app" # ដាក់លីងវេបសាយ HTTPS ដែលបានមកពីវគ្គទី៤
+# 1. កំណត់ឱ្យប្រព័ន្ធបង្ហាញទិន្នន័យ (Logs) ក្នុង Render ងាយស្រួលមើលពេលមាន Error
+logging.basicConfig(
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    level=logging.INFO
+)
+
+# 2. ទាញយកលេខ Token និងលីង Web App ពីប្រព័ន្ធសុវត្ថិភាពរបស់ Render
+# (អ្នកនឹងត្រូវទៅបំពេញលេខពិតប្រាកដនៅលើវេបសាយ Render ផ្ទាល់)
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+WEBAPP_URL = os.getenv("WEBAPP_URL")
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """មុខងារឆ្លើយតបនៅពេលអ្នកប្រើប្រាស់ចុច /start"""
     user = update.effective_user
     
-    # បង្កើតប៊ូតុងប្រភេទ WebApp (បើកផ្ទាល់ក្នុងតេឡេក្រាម)
+    # ពិនិត្យមើលថាតើបានបំពេញលីង WebApp រួចរាល់ហើយឬនៅ
+    if not WEBAPP_URL:
+        await update.message.reply_text("❌ ប្រព័ន្ធមិនទាន់បានកំណត់លីង Web App ទេ។ សូមទាក់ទងម្ចាស់បត។")
+        return
+
+    # បង្កើតប៊ូតុងសម្រាប់បើក Web App ផ្ទាល់ក្នុង Telegram
     keyboard = [
         [InlineKeyboardButton(text="🎮 បើក WebApp យកកូដ Roblox", web_app=WebAppInfo(url=WEBAPP_URL))]
     ]
@@ -25,7 +38,14 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(text=welcome_text, reply_markup=reply_markup)
 
 def main():
-    print("Bot កំពុងដំណើរការហើយ...")
+    """មុខងារចម្បងសម្រាប់ដំណើរការបត"""
+    if not BOT_TOKEN:
+        print("❌ Error: មិនទាន់បានដាក់ BOT_TOKEN ក្នុង Environment Variables របស់ Render ទេ!")
+        return
+
+    print("🚀 បតតេឡេក្រាមចាប់ផ្តើមដំណើរការនៅលើ Render ហើយ...")
+    
+    # បង្កើតកម្មវិធីបត និងដាក់ឱ្យដំណើរការ (Polling)
     application = Application.builder().token(BOT_TOKEN).build()
     application.add_handler(CommandHandler("start", start))
     application.run_polling()
